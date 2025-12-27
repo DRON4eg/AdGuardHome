@@ -1399,9 +1399,10 @@ func TestRewrite(t *testing.T) {
 
 	for _, protect := range []bool{true, false} {
 		val := protect
-		conf := s.getDNSConfig(testutil.ContextWithTimeout(t, testTimeout))
+		ctx := testutil.ContextWithTimeout(t, testTimeout)
+		conf := s.getDNSConfig(ctx)
 		conf.ProtectionEnabled = &val
-		s.setConfig(conf)
+		_ = s.setConfig(ctx, conf)
 
 		t.Run(fmt.Sprintf("protection_is_%t", val), subTestFunc)
 	}
@@ -1590,9 +1591,10 @@ func TestPTRResponseFromHosts(t *testing.T) {
 
 	for _, protect := range []bool{true, false} {
 		val := protect
-		conf := s.getDNSConfig(testutil.ContextWithTimeout(t, testTimeout))
+		ctx := testutil.ContextWithTimeout(t, testTimeout)
+		conf := s.getDNSConfig(ctx)
 		conf.ProtectionEnabled = &val
-		s.setConfig(conf)
+		_ = s.setConfig(ctx, conf)
 
 		t.Run(fmt.Sprintf("protection_is_%t", val), subTestFunc)
 	}

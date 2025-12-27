@@ -66,6 +66,16 @@ func (h *ipsetHandler) close() (err error) {
 	return nil
 }
 
+// updateConfig updates ipset configuration at runtime.  updateConfig can be
+// called on a nil handler.
+func (h *ipsetHandler) updateConfig(ctx context.Context, lines []string) (err error) {
+	if h == nil || h.ipsetMgr == nil {
+		return nil
+	}
+
+	return h.ipsetMgr.UpdateConfig(ctx, lines)
+}
+
 // dctxIsFilled returns true if dctx has enough information to process.
 func dctxIsFilled(dctx *dnsContext) (ok bool) {
 	return dctx != nil &&

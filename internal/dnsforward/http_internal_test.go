@@ -196,50 +196,50 @@ func TestDNSForwardHTTP_handleSetConfig(t *testing.T) {
 		wantSet string
 	}{{
 		name:    "upstream_dns",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "bootstraps",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "blocking_mode_good",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name: "blocking_mode_bad",
 		wantSet: "validating dns config: " +
 			"blocking_ipv4 must be valid ipv4 on custom_ip blocking_mode",
 	}, {
 		name:    "ratelimit",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "ratelimit_subnet_len",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "ratelimit_whitelist_not_ip",
 		wantSet: `decoding request: ParseAddr("not.ip"): unexpected character (at "not.ip")`,
 	}, {
 		name:    "edns_cs_enabled",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "edns_cs_use_custom",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "edns_cs_use_custom_bad_ip",
 		wantSet: "decoding request: ParseAddr(\"bad.ip\"): unexpected character (at \"bad.ip\")",
 	}, {
 		name:    "dnssec_enabled",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "cache_size",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "cache_enabled",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "upstream_mode_parallel",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "upstream_mode_fastest_addr",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name: "upstream_dns_bad",
 		wantSet: `validating dns config: upstream servers: parsing error at index 0: ` +
@@ -257,23 +257,35 @@ func TestDNSForwardHTTP_handleSetConfig(t *testing.T) {
 		wantSet: `validating dns config: upstream_mode: incorrect value "somethingelse"`,
 	}, {
 		name:    "local_ptr_upstreams_good",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name: "local_ptr_upstreams_bad",
 		wantSet: `validating dns config: private upstream servers: ` +
 			`bad arpa domain name "non.arpa": not a reversed ip network`,
 	}, {
 		name:    "local_ptr_upstreams_null",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "fallbacks",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "blocked_response_ttl",
-		wantSet: "",
+		wantSet: "OK",
 	}, {
 		name:    "multiple_domain_specific_upstreams",
-		wantSet: "",
+		wantSet: "OK",
+	}, {
+		name:    "ipset_create_valid",
+		wantSet: "OK",
+	}, {
+		name:    "ipset_create_empty_name",
+		wantSet: "validating dns config: ipset_create.sets[0]: name cannot be empty",
+	}, {
+		name:    "ipset_create_invalid_type",
+		wantSet: `validating dns config: ipset_create.sets[0]: invalid type "bad:type"`,
+	}, {
+		name:    "ipset_create_invalid_family",
+		wantSet: `validating dns config: ipset_create.sets[0]: invalid family "bad", expected inet, inet6, ipv4 or ipv6`,
 	}}
 
 	var data map[string]struct {
@@ -485,4 +497,312 @@ func TestServer_HandleTestUpstreamDNS(t *testing.T) {
 
 		assert.True(t, strings.HasSuffix(sleepyRes, "i/o timeout"))
 	})
+}
+
+func TestCheckIPSetCreate(t *testing.T) {
+	testCases := []struct {
+		name    string
+		config  *jsonIpsetCreateConfig
+		wantErr string
+	}{{
+		name:    "nil_config",
+		config:  nil,
+		wantErr: "",
+	}, {
+		name: "disabled",
+		config: &jsonIpsetCreateConfig{
+			Enabled: false,
+			Sets: []jsonIpsetSetConfig{{
+				Name:   "",
+				Type:   "",
+				Family: "",
+			}},
+		},
+		wantErr: "",
+	}, {
+		name: "valid",
+		config: &jsonIpsetCreateConfig{
+			Enabled: true,
+			Sets: []jsonIpsetSetConfig{{
+				Name:    "test_set",
+				Type:    "hash:ip",
+				Family:  "inet",
+				Timeout: 0,
+			}},
+		},
+		wantErr: "",
+	}, {
+		name: "empty_name",
+		config: &jsonIpsetCreateConfig{
+			Enabled: true,
+			Sets: []jsonIpsetSetConfig{{
+				Name:   "",
+				Type:   "hash:ip",
+				Family: "inet",
+			}},
+		},
+		wantErr: "ipset_create.sets[0]: name cannot be empty",
+	}, {
+		name: "empty_type",
+		config: &jsonIpsetCreateConfig{
+			Enabled: true,
+			Sets: []jsonIpsetSetConfig{{
+				Name:   "test",
+				Type:   "",
+				Family: "inet",
+			}},
+		},
+		wantErr: "ipset_create.sets[0]: type cannot be empty",
+	}, {
+		name: "invalid_type",
+		config: &jsonIpsetCreateConfig{
+			Enabled: true,
+			Sets: []jsonIpsetSetConfig{{
+				Name:   "test",
+				Type:   "invalid:type",
+				Family: "inet",
+			}},
+		},
+		wantErr: `ipset_create.sets[0]: invalid type "invalid:type"`,
+	}, {
+		name: "empty_family",
+		config: &jsonIpsetCreateConfig{
+			Enabled: true,
+			Sets: []jsonIpsetSetConfig{{
+				Name:   "test",
+				Type:   "hash:ip",
+				Family: "",
+			}},
+		},
+		wantErr: "ipset_create.sets[0]: family cannot be empty",
+	}, {
+		name: "invalid_family",
+		config: &jsonIpsetCreateConfig{
+			Enabled: true,
+			Sets: []jsonIpsetSetConfig{{
+				Name:   "test",
+				Type:   "hash:ip",
+				Family: "invalid",
+			}},
+		},
+		wantErr: `ipset_create.sets[0]: invalid family "invalid", expected inet, inet6, ipv4 or ipv6`,
+	}, {
+		name: "multiple_sets_second_invalid",
+		config: &jsonIpsetCreateConfig{
+			Enabled: true,
+			Sets: []jsonIpsetSetConfig{{
+				Name:   "valid_set",
+				Type:   "hash:ip",
+				Family: "inet",
+			}, {
+				Name:   "",
+				Type:   "hash:net",
+				Family: "inet6",
+			}},
+		},
+		wantErr: "ipset_create.sets[1]: name cannot be empty",
+	}}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := &jsonDNSConfig{IPSetCreate: tc.config}
+			err := req.checkIPSetCreate()
+
+			if tc.wantErr == "" {
+				assert.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				assert.Equal(t, tc.wantErr, err.Error())
+			}
+		})
+	}
+}
+
+func TestIpsetSetsEqual(t *testing.T) {
+	testCases := []struct {
+		name string
+		a    []IpsetSetConfig
+		b    []IpsetSetConfig
+		want bool
+	}{{
+		name: "both_empty",
+		a:    []IpsetSetConfig{},
+		b:    []IpsetSetConfig{},
+		want: true,
+	}, {
+		name: "both_nil",
+		a:    nil,
+		b:    nil,
+		want: true,
+	}, {
+		name: "equal_single",
+		a:    []IpsetSetConfig{{Name: "test", Type: "hash:ip", Family: "inet", Timeout: 0}},
+		b:    []IpsetSetConfig{{Name: "test", Type: "hash:ip", Family: "inet", Timeout: 0}},
+		want: true,
+	}, {
+		name: "different_length",
+		a:    []IpsetSetConfig{{Name: "test", Type: "hash:ip", Family: "inet"}},
+		b:    []IpsetSetConfig{},
+		want: false,
+	}, {
+		name: "different_name",
+		a:    []IpsetSetConfig{{Name: "test1", Type: "hash:ip", Family: "inet"}},
+		b:    []IpsetSetConfig{{Name: "test2", Type: "hash:ip", Family: "inet"}},
+		want: false,
+	}, {
+		name: "different_type",
+		a:    []IpsetSetConfig{{Name: "test", Type: "hash:ip", Family: "inet"}},
+		b:    []IpsetSetConfig{{Name: "test", Type: "hash:net", Family: "inet"}},
+		want: false,
+	}, {
+		name: "different_family",
+		a:    []IpsetSetConfig{{Name: "test", Type: "hash:ip", Family: "inet"}},
+		b:    []IpsetSetConfig{{Name: "test", Type: "hash:ip", Family: "inet6"}},
+		want: false,
+	}, {
+		name: "different_timeout",
+		a:    []IpsetSetConfig{{Name: "test", Type: "hash:ip", Family: "inet", Timeout: 100}},
+		b:    []IpsetSetConfig{{Name: "test", Type: "hash:ip", Family: "inet", Timeout: 200}},
+		want: false,
+	}}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ipsetSetsEqual(tc.a, tc.b)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestShouldCreateIpsets(t *testing.T) {
+	validConfig := &IpsetCreateConfig{
+		Enabled: true,
+		Sets: []IpsetSetConfig{{
+			Name:   "test_set",
+			Type:   "hash:ip",
+			Family: "inet",
+		}},
+	}
+
+	disabledConfig := &IpsetCreateConfig{
+		Enabled: false,
+		Sets: []IpsetSetConfig{{
+			Name:   "test_set",
+			Type:   "hash:ip",
+			Family: "inet",
+		}},
+	}
+
+	emptySetsConfig := &IpsetCreateConfig{
+		Enabled: true,
+		Sets:    []IpsetSetConfig{},
+	}
+
+	testCases := []struct {
+		name               string
+		effectiveCreate    *IpsetCreateConfig
+		ipsetCreateChanged bool
+		ipsetRulesChanged  bool
+		want               bool
+	}{{
+		name:               "nil_config",
+		effectiveCreate:    nil,
+		ipsetCreateChanged: true,
+		ipsetRulesChanged:  true,
+		want:               false,
+	}, {
+		name:               "disabled_config",
+		effectiveCreate:    disabledConfig,
+		ipsetCreateChanged: true,
+		ipsetRulesChanged:  true,
+		want:               false,
+	}, {
+		name:               "empty_sets",
+		effectiveCreate:    emptySetsConfig,
+		ipsetCreateChanged: true,
+		ipsetRulesChanged:  true,
+		want:               false,
+	}, {
+		name:               "config_changed_only",
+		effectiveCreate:    validConfig,
+		ipsetCreateChanged: true,
+		ipsetRulesChanged:  false,
+		want:               true,
+	}, {
+		name:               "rules_changed_only",
+		effectiveCreate:    validConfig,
+		ipsetCreateChanged: false,
+		ipsetRulesChanged:  true,
+		want:               true,
+	}, {
+		name:               "both_changed",
+		effectiveCreate:    validConfig,
+		ipsetCreateChanged: true,
+		ipsetRulesChanged:  true,
+		want:               true,
+	}, {
+		name:               "nothing_changed",
+		effectiveCreate:    validConfig,
+		ipsetCreateChanged: false,
+		ipsetRulesChanged:  false,
+		want:               false,
+	}}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := shouldCreateIpsets(tc.effectiveCreate, tc.ipsetCreateChanged, tc.ipsetRulesChanged)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestExtractIpsetNames(t *testing.T) {
+	testCases := []struct {
+		name  string
+		rules []string
+		want  []string
+	}{{
+		name:  "empty",
+		rules: []string{},
+		want:  nil,
+	}, {
+		name:  "single_rule_single_ipset",
+		rules: []string{"example.com/my_set"},
+		want:  []string{"my_set"},
+	}, {
+		name:  "single_rule_multiple_ipsets",
+		rules: []string{"example.com/set1,set2,set3"},
+		want:  []string{"set1", "set2", "set3"},
+	}, {
+		name:  "multiple_rules",
+		rules: []string{"example.com/set1", "example.org/set2"},
+		want:  []string{"set1", "set2"},
+	}, {
+		name:  "multiple_domains_single_ipset",
+		rules: []string{"example.com,example.org/my_set"},
+		want:  []string{"my_set"},
+	}, {
+		name:  "duplicate_ipsets",
+		rules: []string{"example.com/set1", "example.org/set1,set2"},
+		want:  []string{"set1", "set2"},
+	}, {
+		name:  "whitespace",
+		rules: []string{"  example.com / set1 , set2  "},
+		want:  []string{"set1", "set2"},
+	}, {
+		name:  "invalid_rule_no_slash",
+		rules: []string{"invalid_rule"},
+		want:  nil,
+	}, {
+		name:  "mixed_valid_invalid",
+		rules: []string{"invalid", "example.com/valid_set", ""},
+		want:  []string{"valid_set"},
+	}}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := extractIpsetNames(tc.rules)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }
