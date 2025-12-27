@@ -43,7 +43,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "bootstraps": {
@@ -86,7 +89,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "blocking_mode_good": {
@@ -130,7 +136,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "blocking_mode_bad": {
@@ -174,7 +183,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "ratelimit": {
@@ -218,7 +230,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "ratelimit_subnet_len": {
@@ -264,7 +279,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "ratelimit_whitelist_not_ip": {
@@ -311,7 +329,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "edns_cs_enabled": {
@@ -355,7 +376,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "edns_cs_use_custom": {
@@ -401,7 +425,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": true,
-      "edns_cs_custom_ip": "1.2.3.4"
+      "edns_cs_custom_ip": "1.2.3.4",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "edns_cs_use_custom_bad_ip": {
@@ -447,7 +474,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "dnssec_enabled": {
@@ -491,7 +521,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "cache_size": {
@@ -535,7 +568,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "cache_enabled": {
@@ -580,7 +616,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "upstream_mode_parallel": {
@@ -624,7 +663,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "upstream_mode_fastest_addr": {
@@ -668,7 +710,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "upstream_dns_bad": {
@@ -714,7 +759,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "bootstraps_bad": {
@@ -760,7 +808,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "cache_bad_ttl": {
@@ -805,7 +856,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "upstream_mode_bad": {
@@ -849,7 +903,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "local_ptr_upstreams_good": {
@@ -897,7 +954,10 @@
         "123.123.123.123"
       ],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "local_ptr_upstreams_bad": {
@@ -944,7 +1004,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "local_ptr_upstreams_null": {
@@ -988,7 +1051,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "fallbacks": {
@@ -1036,7 +1102,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "blocked_response_ttl": {
@@ -1080,7 +1149,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "multiple_domain_specific_upstreams": {
@@ -1127,7 +1199,10 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   },
   "upstream_timeout": {
@@ -1171,7 +1246,248 @@
       "use_private_ptr_resolvers": false,
       "local_ptr_upstreams": [],
       "edns_cs_use_custom": false,
-      "edns_cs_custom_ip": ""
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
+    }
+  },
+  "ipset_create_valid": {
+    "req": {
+      "ipset_create": {
+        "enabled": true,
+        "sets": [
+          {
+            "name": "test_set",
+            "type": "hash:ip",
+            "family": "inet",
+            "timeout": 0
+          }
+        ]
+      }
+    },
+    "want": {
+      "upstream_dns": [
+        "8.8.8.8:53",
+        "8.8.4.4:53"
+      ],
+      "upstream_dns_file": "",
+      "bootstrap_dns": [
+        "9.9.9.10",
+        "149.112.112.10",
+        "2620:fe::10",
+        "2620:fe::fe:10"
+      ],
+      "fallback_dns": [],
+      "protection_enabled": true,
+      "protection_disabled_until": null,
+      "ratelimit": 0,
+      "ratelimit_subnet_len_ipv4": 24,
+      "ratelimit_subnet_len_ipv6": 56,
+      "ratelimit_whitelist": [],
+      "blocking_mode": "default",
+      "blocking_ipv4": "",
+      "blocking_ipv6": "",
+      "blocked_response_ttl": 10,
+      "upstream_timeout": 10,
+      "edns_cs_enabled": false,
+      "dnssec_enabled": false,
+      "disable_ipv6": false,
+      "upstream_mode": "",
+      "cache_size": 0,
+      "cache_ttl_min": 0,
+      "cache_ttl_max": 0,
+      "cache_enabled": false,
+      "cache_optimistic": false,
+      "resolve_clients": false,
+      "use_private_ptr_resolvers": false,
+      "local_ptr_upstreams": [],
+      "edns_cs_use_custom": false,
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": {
+        "enabled": true,
+        "sets": [
+          {
+            "name": "test_set",
+            "type": "hash:ip",
+            "family": "inet",
+            "timeout": 0
+          }
+        ]
+      }
+    }
+  },
+  "ipset_create_empty_name": {
+    "req": {
+      "ipset_create": {
+        "enabled": true,
+        "sets": [
+          {
+            "name": "",
+            "type": "hash:ip",
+            "family": "inet",
+            "timeout": 0
+          }
+        ]
+      }
+    },
+    "want": {
+      "upstream_dns": [
+        "8.8.8.8:53",
+        "8.8.4.4:53"
+      ],
+      "upstream_dns_file": "",
+      "bootstrap_dns": [
+        "9.9.9.10",
+        "149.112.112.10",
+        "2620:fe::10",
+        "2620:fe::fe:10"
+      ],
+      "fallback_dns": [],
+      "protection_enabled": true,
+      "protection_disabled_until": null,
+      "ratelimit": 0,
+      "ratelimit_subnet_len_ipv4": 24,
+      "ratelimit_subnet_len_ipv6": 56,
+      "ratelimit_whitelist": [],
+      "blocking_mode": "default",
+      "blocking_ipv4": "",
+      "blocking_ipv6": "",
+      "blocked_response_ttl": 10,
+      "upstream_timeout": 10,
+      "edns_cs_enabled": false,
+      "dnssec_enabled": false,
+      "disable_ipv6": false,
+      "upstream_mode": "",
+      "cache_size": 0,
+      "cache_ttl_min": 0,
+      "cache_ttl_max": 0,
+      "cache_enabled": false,
+      "cache_optimistic": false,
+      "resolve_clients": false,
+      "use_private_ptr_resolvers": false,
+      "local_ptr_upstreams": [],
+      "edns_cs_use_custom": false,
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
+    }
+  },
+  "ipset_create_invalid_type": {
+    "req": {
+      "ipset_create": {
+        "enabled": true,
+        "sets": [
+          {
+            "name": "test",
+            "type": "bad:type",
+            "family": "inet",
+            "timeout": 0
+          }
+        ]
+      }
+    },
+    "want": {
+      "upstream_dns": [
+        "8.8.8.8:53",
+        "8.8.4.4:53"
+      ],
+      "upstream_dns_file": "",
+      "bootstrap_dns": [
+        "9.9.9.10",
+        "149.112.112.10",
+        "2620:fe::10",
+        "2620:fe::fe:10"
+      ],
+      "fallback_dns": [],
+      "protection_enabled": true,
+      "protection_disabled_until": null,
+      "ratelimit": 0,
+      "ratelimit_subnet_len_ipv4": 24,
+      "ratelimit_subnet_len_ipv6": 56,
+      "ratelimit_whitelist": [],
+      "blocking_mode": "default",
+      "blocking_ipv4": "",
+      "blocking_ipv6": "",
+      "blocked_response_ttl": 10,
+      "upstream_timeout": 10,
+      "edns_cs_enabled": false,
+      "dnssec_enabled": false,
+      "disable_ipv6": false,
+      "upstream_mode": "",
+      "cache_size": 0,
+      "cache_ttl_min": 0,
+      "cache_ttl_max": 0,
+      "cache_enabled": false,
+      "cache_optimistic": false,
+      "resolve_clients": false,
+      "use_private_ptr_resolvers": false,
+      "local_ptr_upstreams": [],
+      "edns_cs_use_custom": false,
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
+    }
+  },
+  "ipset_create_invalid_family": {
+    "req": {
+      "ipset_create": {
+        "enabled": true,
+        "sets": [
+          {
+            "name": "test",
+            "type": "hash:ip",
+            "family": "bad",
+            "timeout": 0
+          }
+        ]
+      }
+    },
+    "want": {
+      "upstream_dns": [
+        "8.8.8.8:53",
+        "8.8.4.4:53"
+      ],
+      "upstream_dns_file": "",
+      "bootstrap_dns": [
+        "9.9.9.10",
+        "149.112.112.10",
+        "2620:fe::10",
+        "2620:fe::fe:10"
+      ],
+      "fallback_dns": [],
+      "protection_enabled": true,
+      "protection_disabled_until": null,
+      "ratelimit": 0,
+      "ratelimit_subnet_len_ipv4": 24,
+      "ratelimit_subnet_len_ipv6": 56,
+      "ratelimit_whitelist": [],
+      "blocking_mode": "default",
+      "blocking_ipv4": "",
+      "blocking_ipv6": "",
+      "blocked_response_ttl": 10,
+      "upstream_timeout": 10,
+      "edns_cs_enabled": false,
+      "dnssec_enabled": false,
+      "disable_ipv6": false,
+      "upstream_mode": "",
+      "cache_size": 0,
+      "cache_ttl_min": 0,
+      "cache_ttl_max": 0,
+      "cache_enabled": false,
+      "cache_optimistic": false,
+      "resolve_clients": false,
+      "use_private_ptr_resolvers": false,
+      "local_ptr_upstreams": [],
+      "edns_cs_use_custom": false,
+      "edns_cs_custom_ip": "",
+      "ipset": [],
+      "ipset_file": "",
+      "ipset_create": null
     }
   }
 }

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/netip"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/AdguardTeam/AdGuardHome/internal/aghhttp"
@@ -18,6 +19,7 @@ import (
 	"github.com/AdguardTeam/AdGuardHome/internal/filtering"
 	"github.com/AdguardTeam/dnsproxy/proxy"
 	"github.com/AdguardTeam/dnsproxy/upstream"
+	"github.com/AdguardTeam/golibs/container"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/logutil/slogutil"
 	"github.com/AdguardTeam/golibs/netutil"
@@ -125,6 +127,42 @@ type jsonDNSConfig struct {
 	// systemResolvers to the front-end.  It's not a pointer to the slice since
 	// there is no need to omit it while decoding from JSON.
 	DefaultLocalPTRUpstreams []string `json:"default_local_ptr_upstreams,omitempty"`
+
+	// IPSet is the ipset configuration that allows adding IP addresses of
+	// specified domain names to an ipset list.  The format is:
+	// DOMAIN[,DOMAIN].../IPSET_NAME[,IPSET_NAME]...
+	IPSet *[]string `json:"ipset"`
+
+	// IPSetFile is the path to a file containing ipset configuration.
+	// The format is the same as IPSet.  This field takes precedence over IPSet.
+	IPSetFile *string `json:"ipset_file"`
+
+	// IPSetCreate contains configuration for automatic ipset creation.
+	IPSetCreate *jsonIpsetCreateConfig `json:"ipset_create"`
+}
+
+// jsonIpsetCreateConfig contains configuration for automatic ipset creation.
+type jsonIpsetCreateConfig struct {
+	// Enabled indicates whether automatic ipset creation is enabled.
+	Enabled bool `json:"enabled"`
+
+	// Sets is the list of ipsets to create if they don't exist.
+	Sets []jsonIpsetSetConfig `json:"sets"`
+}
+
+// jsonIpsetSetConfig contains configuration for a single ipset.
+type jsonIpsetSetConfig struct {
+	// Name is the name of the ipset.
+	Name string `json:"name"`
+
+	// Type is the type of the ipset (e.g., "hash:ip", "hash:net").
+	Type string `json:"type"`
+
+	// Family is the IP family ("inet" for IPv4, "inet6" for IPv6).
+	Family string `json:"family"`
+
+	// Timeout is the timeout in seconds for entries (0 means no timeout).
+	Timeout uint32 `json:"timeout"`
 }
 
 // jsonUpstreamMode is a enumeration of upstream modes.
@@ -174,6 +212,23 @@ func (s *Server) getDNSConfig(ctx context.Context) (c *jsonDNSConfig) {
 	resolveClients := s.conf.AddrProcConf.UseRDNS
 	usePrivateRDNS := s.conf.UsePrivateRDNS
 	localPTRUpstreams := stringutil.CloneSliceOrEmpty(s.conf.LocalPTRResolvers)
+	ipsetList := stringutil.CloneSliceOrEmpty(s.conf.IpsetList)
+	ipsetFile := s.conf.IpsetListFileName
+	var ipsetCreate *jsonIpsetCreateConfig
+	if s.conf.IpsetCreate != nil {
+		ipsetCreate = &jsonIpsetCreateConfig{
+			Enabled: s.conf.IpsetCreate.Enabled,
+			Sets:    make([]jsonIpsetSetConfig, len(s.conf.IpsetCreate.Sets)),
+		}
+		for i, set := range s.conf.IpsetCreate.Sets {
+			ipsetCreate.Sets[i] = jsonIpsetSetConfig{
+				Name:    set.Name,
+				Type:    set.Type,
+				Family:  set.Family,
+				Timeout: set.Timeout,
+			}
+		}
+	}
 
 	var upstreamMode jsonUpstreamMode
 	switch s.conf.UpstreamMode {
@@ -223,6 +278,9 @@ func (s *Server) getDNSConfig(ctx context.Context) (c *jsonDNSConfig) {
 		LocalPTRUpstreams:        &localPTRUpstreams,
 		DefaultLocalPTRUpstreams: defPTRUps,
 		DisabledUntil:            protectionDisabledUntil,
+		IPSet:                    &ipsetList,
+		IPSetFile:                &ipsetFile,
+		IPSetCreate:              ipsetCreate,
 	}
 }
 
@@ -327,6 +385,65 @@ func (req *jsonDNSConfig) validate(
 	if err != nil {
 		// Don't wrap the error since it's informative enough as is.
 		return err
+	}
+
+	err = req.checkIPSetCreate()
+	if err != nil {
+		// Don't wrap the error since it's informative enough as is.
+		return err
+	}
+
+	return nil
+}
+
+// allowedIPSetTypes is the set of valid ipset types.
+var allowedIPSetTypes = container.NewMapSet(
+	"hash:ip",
+	"hash:net",
+	"hash:ip,port",
+	"hash:net,port",
+	"hash:ip,port,ip",
+	"hash:ip,port,net",
+	"hash:net,port,net",
+	"hash:ip,mark",
+	"hash:net,iface",
+	"list:set",
+)
+
+// allowedIPSetFamilies is the set of valid ipset families.
+var allowedIPSetFamilies = container.NewMapSet(
+	"inet",
+	"inet6",
+	"ipv4",
+	"ipv6",
+)
+
+// checkIPSetCreate validates the ipset_create configuration.
+func (req *jsonDNSConfig) checkIPSetCreate() (err error) {
+	if req.IPSetCreate == nil || !req.IPSetCreate.Enabled {
+		return nil
+	}
+
+	for i, set := range req.IPSetCreate.Sets {
+		if set.Name == "" {
+			return fmt.Errorf("ipset_create.sets[%d]: name cannot be empty", i)
+		}
+
+		if set.Type == "" {
+			return fmt.Errorf("ipset_create.sets[%d]: type cannot be empty", i)
+		}
+
+		if !allowedIPSetTypes.Has(set.Type) {
+			return fmt.Errorf("ipset_create.sets[%d]: invalid type %q", i, set.Type)
+		}
+
+		if set.Family == "" {
+			return fmt.Errorf("ipset_create.sets[%d]: family cannot be empty", i)
+		}
+
+		if !allowedIPSetFamilies.Has(set.Family) {
+			return fmt.Errorf("ipset_create.sets[%d]: invalid family %q, expected inet, inet6, ipv4 or ipv6", i, set.Family)
+		}
 	}
 
 	return nil
@@ -572,20 +689,145 @@ func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restart := s.setConfig(req)
+	// Transactional ipset hot-reload: apply ipset rules BEFORE mutating config.
+	// This ensures that if hot-reload fails, config remains unchanged.
+	err = s.tryIpsetHotReload(ctx, req)
+	if err != nil {
+		aghhttp.ErrorAndLog(
+			ctx,
+			l,
+			r,
+			w,
+			http.StatusInternalServerError,
+			"hot-reloading ipset config: %s",
+			err,
+		)
+
+		return
+	}
+
+	restart := s.setConfig(ctx, req)
+
 	s.conf.ConfModifier.Apply(ctx)
 
 	if restart {
 		err = s.Reconfigure(ctx, nil)
 		if err != nil {
 			aghhttp.ErrorAndLog(ctx, l, r, w, http.StatusInternalServerError, "%s", err)
+
+			return
 		}
 	}
+
+	aghhttp.OK(ctx, l, w)
+}
+
+// tryIpsetHotReload attempts to hot-reload ipset configuration if the ipset
+// fields have actually changed.  It also creates ipsets if ipset_create is
+// enabled and either ipset_create changed or ipset rules changed.  This
+// protects against the scenario where ipsets were manually deleted and then
+// rules were updated.  This function is called BEFORE config mutation to
+// ensure transactional behavior.  It returns an error if any operation fails.
+func (s *Server) tryIpsetHotReload(ctx context.Context, req *jsonDNSConfig) (err error) {
+	// Determine the effective ipset_create configuration.
+	var effectiveCreate *IpsetCreateConfig
+	ipsetCreateChanged := false
+
+	if req.IPSetCreate != nil {
+		effectiveCreate = jsonIpsetCreateToConfig(req.IPSetCreate)
+		ipsetCreateChanged = s.ipsetCreateChanged(effectiveCreate)
+	} else {
+		// Use current config if not in request.
+		s.serverLock.RLock()
+		if s.conf.IpsetCreate != nil {
+			effectiveCreate = &IpsetCreateConfig{
+				Enabled: s.conf.IpsetCreate.Enabled,
+				Sets:    append([]IpsetSetConfig{}, s.conf.IpsetCreate.Sets...),
+			}
+		}
+		s.serverLock.RUnlock()
+	}
+
+	// Determine candidate values (from request with fallback to current config).
+	s.serverLock.RLock()
+	currentIpsetList := s.conf.IpsetList
+	currentIpsetFile := s.conf.IpsetListFileName
+	s.serverLock.RUnlock()
+
+	candidateIpsetList := currentIpsetList
+	if req.IPSet != nil {
+		candidateIpsetList = *req.IPSet
+	}
+
+	candidateIpsetFile := currentIpsetFile
+	if req.IPSetFile != nil {
+		candidateIpsetFile = *req.IPSetFile
+	}
+
+	// Check if ipset rules actually changed.
+	ipsetRulesChanged := !slices.Equal(candidateIpsetList, currentIpsetList) ||
+		candidateIpsetFile != currentIpsetFile
+
+	// Create ipsets if needed.
+	if shouldCreateIpsets(effectiveCreate, ipsetCreateChanged, ipsetRulesChanged) {
+		err = s.createIpsets(ctx, effectiveCreate)
+		if err != nil {
+			return fmt.Errorf("creating ipsets: %w", err)
+		}
+	}
+
+	// If no ipset rules changed, nothing more to do.
+	if !ipsetRulesChanged {
+		return nil
+	}
+
+	// Prepare ipset list from candidate values.
+	ipsetList, err := prepareIpsetListSettingsFrom(
+		ctx,
+		s.logger,
+		candidateIpsetList,
+		candidateIpsetFile,
+	)
+	if err != nil {
+		return fmt.Errorf("reading ipset settings: %w", err)
+	}
+
+	// Validate that all referenced ipsets exist before applying rules.
+	requiredNames := extractIpsetNames(ipsetList)
+	if missing := s.validateIpsetsExist(ctx, requiredNames); len(missing) > 0 {
+		return fmt.Errorf("ipsets do not exist: %v", missing)
+	}
+
+	// Apply ipset rules.
+	return s.ipset.updateConfig(ctx, ipsetList)
+}
+
+// jsonIpsetCreateToConfig converts JSON ipset_create to internal config.
+func jsonIpsetCreateToConfig(j *jsonIpsetCreateConfig) (c *IpsetCreateConfig) {
+	if j == nil {
+		return nil
+	}
+
+	c = &IpsetCreateConfig{
+		Enabled: j.Enabled,
+		Sets:    make([]IpsetSetConfig, len(j.Sets)),
+	}
+
+	for i, set := range j.Sets {
+		c.Sets[i] = IpsetSetConfig{
+			Name:    set.Name,
+			Type:    set.Type,
+			Family:  set.Family,
+			Timeout: set.Timeout,
+		}
+	}
+
+	return c
 }
 
 // setConfig sets the server parameters.  shouldRestart is true if the server
 // should be restarted to apply changes.
-func (s *Server) setConfig(dc *jsonDNSConfig) (shouldRestart bool) {
+func (s *Server) setConfig(ctx context.Context, dc *jsonDNSConfig) (shouldRestart bool) {
 	s.serverLock.Lock()
 	defer s.serverLock.Unlock()
 
@@ -612,7 +854,15 @@ func (s *Server) setConfig(dc *jsonDNSConfig) (shouldRestart bool) {
 	setIfNotNil(&s.conf.EnableDNSSEC, dc.DNSSECEnabled)
 	setIfNotNil(&s.conf.AAAADisabled, dc.DisableIPv6)
 
-	return s.setConfigRestartable(dc)
+	// Handle ipset and ipset_file configuration.
+	if dc.IPSet != nil {
+		s.conf.IpsetList = *dc.IPSet
+	}
+	if dc.IPSetFile != nil {
+		s.conf.IpsetListFileName = *dc.IPSetFile
+	}
+
+	return s.setConfigRestartable(ctx, dc)
 }
 
 // mustParseUpstreamMode returns an upstream mode parsed from jsonUpstreamMode.
@@ -643,13 +893,99 @@ func setIfNotNil[T any](currentPtr, newPtr *T) (hasSet bool) {
 	return true
 }
 
+// shouldCreateIpsets determines if createIpsets should be called based on
+// ipset_create config and whether rules or config changed.  Returns true if:
+//  1. ipset_create changed and is enabled, OR
+//  2. ipset rules changed and ipset_create is enabled (to handle manually
+//     deleted ipsets scenario).
+func shouldCreateIpsets(
+	effectiveCreate *IpsetCreateConfig,
+	ipsetCreateChanged bool,
+	ipsetRulesChanged bool,
+) bool {
+	return effectiveCreate != nil &&
+		effectiveCreate.Enabled &&
+		len(effectiveCreate.Sets) > 0 &&
+		(ipsetCreateChanged || ipsetRulesChanged)
+}
+
+// extractIpsetNames extracts unique ipset names from ipset rules.
+// Rule format: "domain1,domain2/ipset1,ipset2"
+func extractIpsetNames(rules []string) []string {
+	seen := make(map[string]struct{})
+	var names []string
+
+	for _, rule := range rules {
+		rule = strings.TrimSpace(rule)
+		if rule == "" {
+			continue
+		}
+
+		parts := strings.Split(rule, "/")
+		if len(parts) != 2 {
+			continue
+		}
+
+		ipsetPart := parts[1]
+		for _, name := range strings.Split(ipsetPart, ",") {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				continue
+			}
+			if _, ok := seen[name]; !ok {
+				seen[name] = struct{}{}
+				names = append(names, name)
+			}
+		}
+	}
+
+	return names
+}
+
+// ipsetSetsEqual compares two slices of IpsetSetConfig for equality.
+func ipsetSetsEqual(a, b []IpsetSetConfig) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i].Name != b[i].Name ||
+			a[i].Type != b[i].Type ||
+			a[i].Family != b[i].Family ||
+			a[i].Timeout != b[i].Timeout {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ipsetCreateChanged checks if the ipset_create configuration has changed
+// compared to the current configuration.
+func (s *Server) ipsetCreateChanged(candidate *IpsetCreateConfig) bool {
+	s.serverLock.RLock()
+	current := s.conf.IpsetCreate
+	s.serverLock.RUnlock()
+
+	if current == nil {
+		// No current config, so any candidate is a change.
+		return true
+	}
+
+	if current.Enabled != candidate.Enabled {
+		return true
+	}
+
+	return !ipsetSetsEqual(current.Sets, candidate.Sets)
+}
+
 // setConfigRestartable sets the parameters which trigger a restart.
 // shouldRestart is true if the server should be restarted to apply changes.
 // s.serverLock is expected to be locked.
 //
 // TODO(a.garipov): Some of these could probably be updated without a restart.
 // Inspect and consider refactoring.
-func (s *Server) setConfigRestartable(dc *jsonDNSConfig) (shouldRestart bool) {
+func (s *Server) setConfigRestartable(ctx context.Context, dc *jsonDNSConfig) (shouldRestart bool) {
 	for _, hasSet := range []bool{
 		setIfNotNil(&s.conf.UpstreamDNS, dc.Upstreams),
 		setIfNotNil(&s.conf.LocalPTRResolvers, dc.LocalPTRUpstreams),
@@ -673,6 +1009,30 @@ func (s *Server) setConfigRestartable(dc *jsonDNSConfig) (shouldRestart bool) {
 		if shouldRestart {
 			break
 		}
+	}
+
+	// Handle ipset_create configuration.
+	// Note: actual ipset creation happens in tryIpsetHotReload before config
+	// mutation to ensure transactional behavior.
+	if dc.IPSetCreate != nil {
+		if s.conf.IpsetCreate == nil {
+			s.conf.IpsetCreate = &IpsetCreateConfig{}
+		}
+
+		s.conf.IpsetCreate.Enabled = dc.IPSetCreate.Enabled
+
+		newSets := make([]IpsetSetConfig, len(dc.IPSetCreate.Sets))
+		for i, jsonSet := range dc.IPSetCreate.Sets {
+			newSets[i] = IpsetSetConfig{
+				Name:    jsonSet.Name,
+				Type:    jsonSet.Type,
+				Family:  jsonSet.Family,
+				Timeout: jsonSet.Timeout,
+			}
+		}
+		s.conf.IpsetCreate.Sets = newSets
+	} else if s.conf.IpsetCreate != nil {
+		s.conf.IpsetCreate.Enabled = false
 	}
 
 	if dc.Ratelimit != nil && s.conf.Ratelimit != *dc.Ratelimit {

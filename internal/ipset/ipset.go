@@ -14,6 +14,9 @@ import (
 type Manager interface {
 	Add(ctx context.Context, host string, ip4s, ip6s []net.IP) (n int, err error)
 	Close() (err error)
+	// UpdateConfig updates the domain-to-ipset mapping at runtime without
+	// requiring a server restart.  lines has the same format as [Config.Lines].
+	UpdateConfig(ctx context.Context, lines []string) (err error)
 }
 
 // Config is the configuration structure for the ipset manager.

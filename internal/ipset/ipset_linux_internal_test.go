@@ -185,3 +185,75 @@ func BenchmarkManager_LookupHost(b *testing.B) {
 	//	BenchmarkManager_LookupHost/long-8         	 6562424	       174.8 ns/op	       0 B/op	       0 allocs/op
 	//	BenchmarkManager_LookupHost/short-8        	100000000	        10.72 ns/op	       0 B/op	       0 allocs/op
 }
+
+func TestManager_UpdateConfig(t *testing.T) {
+	// Initial config with one domain.
+	ipsetList := []string{
+		"example.com/ipv4set",
+	}
+
+	var ipv4Entries []*ipset.Entry
+	var ipv6Entries []*ipset.Entry
+
+	fakeDial := func(
+		pf netfilter.ProtoFamily,
+		conf *netlink.Config,
+	) (conn ipsetConn, err error) {
+		return &fakeConn{
+			ipv4Entries: &ipv4Entries,
+			ipv6Entries: &ipv6Entries,
+			sets: []props{{
+				name:   "ipv4set",
+				family: netfilter.ProtoIPv4,
+			}, {
+				name:   "ipv6set",
+				family: netfilter.ProtoIPv6,
+			}},
+		}, nil
+	}
+
+	conf := &Config{
+		Logger: slogutil.NewDiscardLogger(),
+		Lines:  ipsetList,
+	}
+	ctx := testutil.ContextWithTimeout(t, testTimeout)
+	m, err := newManagerWithDialer(ctx, conf, fakeDial)
+	require.NoError(t, err)
+
+	// Initial: example.com works.
+	ip4 := net.IP{1, 2, 3, 4}
+	n, err := m.Add(ctx, "example.com", []net.IP{ip4}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 1, n)
+
+	// Initial: example.org doesn't work (not configured).
+	n, err = m.Add(ctx, "example.org", []net.IP{ip4}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 0, n)
+
+	// Update config to add example.org.
+	newLines := []string{
+		"example.com/ipv4set",
+		"example.org/ipv6set",
+	}
+	err = m.UpdateConfig(ctx, newLines)
+	require.NoError(t, err)
+
+	// Now example.org works.
+	ip6 := net.IP{0x20, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+	n, err = m.Add(ctx, "example.org", nil, []net.IP{ip6})
+	require.NoError(t, err)
+	assert.Equal(t, 1, n)
+
+	// Clear config.
+	err = m.UpdateConfig(ctx, []string{})
+	require.NoError(t, err)
+
+	// Now nothing works.
+	n, err = m.Add(ctx, "example.com", []net.IP{ip4}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 0, n)
+
+	err = m.Close()
+	assert.NoError(t, err)
+}

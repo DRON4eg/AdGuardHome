@@ -561,3 +561,98 @@ func (m *manager) Close() (err error) {
 
 	return errors.Annotate(errors.Join(errs...), "closing ipsets: %w")
 }
+
+// UpdateConfig implements the [Manager] interface for *manager.
+func (m *manager) UpdateConfig(ctx context.Context, lines []string) (err error) {
+	if len(lines) == 0 {
+		m.mu.Lock()
+		m.domainToIpsets = make(map[string][]props)
+		m.nameToIpset = make(map[string]props)
+		m.addedIPs = container.NewMapSet[ipInIpsetEntry]()
+		m.mu.Unlock()
+
+		m.logger.DebugContext(ctx, "cleared ipset configuration")
+
+		return nil
+	}
+
+	// Query currently known ipsets under lock to avoid race with Add/Close.
+	m.mu.Lock()
+	all, err := m.ipv4Conn.listAll()
+	m.mu.Unlock()
+
+	if err != nil {
+		return fmt.Errorf("listing ipsets: %w", err)
+	}
+
+	currentlyKnown := make(map[string]props, len(all))
+	for _, p := range all {
+		currentlyKnown[p.name] = p
+	}
+
+	// Parse into temporary maps.
+	newDomainToIpsets := make(map[string][]props)
+	newNameToIpset := make(map[string]props)
+
+	for i, confStr := range lines {
+		hosts, ipsetNames, parseErr := parseIpsetConfigLine(confStr)
+		if parseErr != nil {
+			return fmt.Errorf("config line at idx %d: %w", i, parseErr)
+		}
+
+		ipsets, ipsetsErr := m.ipsetsForUpdateLocked(ctx, ipsetNames, currentlyKnown, newNameToIpset)
+		if ipsetsErr != nil {
+			return fmt.Errorf("getting ipsets from config line at idx %d: %w", i, ipsetsErr)
+		}
+
+		for _, host := range hosts {
+			newDomainToIpsets[host] = append(newDomainToIpsets[host], ipsets...)
+		}
+	}
+
+	// Atomically replace maps.
+	m.mu.Lock()
+	m.domainToIpsets = newDomainToIpsets
+	m.nameToIpset = newNameToIpset
+	m.addedIPs = container.NewMapSet[ipInIpsetEntry]()
+	m.mu.Unlock()
+
+	m.logger.InfoContext(ctx, "updated ipset configuration", "domains", len(newDomainToIpsets))
+
+	return nil
+}
+
+// ipsetsForUpdateLocked is like [manager.ipsets] but uses provided map instead
+// of [manager.nameToIpset].  It acquires m.mu for netlink calls to ipsetProps.
+func (m *manager) ipsetsForUpdateLocked(
+	ctx context.Context,
+	names []string,
+	currentlyKnown map[string]props,
+	nameToIpset map[string]props,
+) (sets []props, err error) {
+	for _, n := range names {
+		p, ok := currentlyKnown[n]
+		if !ok {
+			return nil, fmt.Errorf("unknown ipset %q", n)
+		}
+
+		if p.family != netfilter.ProtoIPv4 && p.family != netfilter.ProtoIPv6 {
+			m.logger.DebugContext(ctx, "unexpected ipset family, querying header",
+				"set_name", p.name, "set_family", p.family)
+
+			// Acquire lock for netlink call to avoid race with Add/Close.
+			m.mu.Lock()
+			p, err = m.ipsetProps(n)
+			m.mu.Unlock()
+
+			if err != nil {
+				return nil, fmt.Errorf("%q making header query: %w", n, err)
+			}
+		}
+
+		nameToIpset[n] = p
+		sets = append(sets, p)
+	}
+
+	return sets, nil
+}

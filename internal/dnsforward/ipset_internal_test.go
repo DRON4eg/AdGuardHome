@@ -5,6 +5,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/AdguardTeam/AdGuardHome/internal/ipset"
 	"github.com/AdguardTeam/dnsproxy/proxy"
 	"github.com/AdguardTeam/golibs/testutil"
 	"github.com/miekg/dns"
@@ -17,16 +18,24 @@ type fakeIpsetMgr struct {
 	ip6s []net.IP
 }
 
-// Add implements the aghnet.IpsetManager interface for *fakeIpsetMgr.
-func (m *fakeIpsetMgr) Add(_ context.Context, host string, ip4s, ip6s []net.IP) (n int, err error) {
+// type check
+var _ ipset.Manager = (*fakeIpsetMgr)(nil)
+
+// Add implements the [ipset.Manager] interface for *fakeIpsetMgr.
+func (m *fakeIpsetMgr) Add(_ context.Context, _ string, ip4s, ip6s []net.IP) (n int, err error) {
 	m.ip4s = append(m.ip4s, ip4s...)
 	m.ip6s = append(m.ip6s, ip6s...)
 
 	return len(ip4s) + len(ip6s), nil
 }
 
-// Close implements the aghnet.IpsetManager interface for *fakeIpsetMgr.
+// Close implements the [ipset.Manager] interface for *fakeIpsetMgr.
 func (*fakeIpsetMgr) Close() (err error) {
+	return nil
+}
+
+// UpdateConfig implements the [ipset.Manager] interface for *fakeIpsetMgr.
+func (*fakeIpsetMgr) UpdateConfig(_ context.Context, _ []string) (err error) {
 	return nil
 }
 
