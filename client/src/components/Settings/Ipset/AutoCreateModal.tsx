@@ -29,7 +29,7 @@ const AutoCreateModal: React.FC<AutoCreateModalProps> = ({
 }) => {
     const { t } = useTranslation();
 
-    const { control, handleSubmit, reset, formState: { errors } } = useForm<IpsetDefinition>({
+    const { control, handleSubmit, reset } = useForm<IpsetDefinition>({
         defaultValues: {
             name: initialDefinition?.name || '',
             type: initialDefinition?.type || 'hash:ip',
@@ -99,11 +99,9 @@ const AutoCreateModal: React.FC<AutoCreateModalProps> = ({
             return t('ipset_file_path_required');
         }
 
-        // Check each name individually
-        for (const name of names) {
-            if (!/^[A-Za-z0-9_-]+$/.test(name)) {
-                return `${t('ipset_invalid_rule')}: "${name}"`;
-            }
+        const invalid = names.find(n => !/^[A-Za-z0-9_-]+$/.test(n));
+        if (invalid) {
+            return `${t('ipset_invalid_rule')}: "${invalid}"`;
         }
 
         return undefined;

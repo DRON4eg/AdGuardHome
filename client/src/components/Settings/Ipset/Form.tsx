@@ -133,7 +133,7 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
         if (editingAutoCreateIndex !== null) {
             // When editing, replace the single item
             const newSets = [...autoCreateSets];
-            newSets[editingAutoCreateIndex] = definitions[0];
+            [newSets[editingAutoCreateIndex]] = definitions;
             setAutoCreateSets(newSets);
         } else {
             // When adding, append all new definitions
