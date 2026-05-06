@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 
@@ -27,40 +28,67 @@ interface FormProps {
 
 type StorageMode = 'config' | 'file';
 
-const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpsetCreate, onSubmit, processing }) => {
+interface FormData {
+    mode: StorageMode;
+    rules: string[];
+    filePath: string;
+    autoCreateEnabled: boolean;
+    autoCreateSets: IpsetDefinition[];
+}
+
+const buildDefaults = (
+    rules: string[],
+    filePath: string,
+    ipsetCreate: IpsetCreateConfig | null,
+): FormData => ({
+    mode: filePath && filePath.trim() !== '' ? 'file' : 'config',
+    rules,
+    filePath,
+    autoCreateEnabled: ipsetCreate?.enabled || false,
+    autoCreateSets: ipsetCreate?.sets || [],
+});
+
+const Form: React.FC<FormProps> = ({
+    initialRules,
+    initialFilePath,
+    initialIpsetCreate,
+    onSubmit,
+    processing,
+}) => {
     const { t } = useTranslation();
     const dispatch = useDispatch();
 
-    // Determine initial mode
-    const initialMode: StorageMode = initialFilePath && initialFilePath.trim() !== '' ? 'file' : 'config';
+    const {
+        control,
+        handleSubmit,
+        watch,
+        setValue,
+        reset,
+        formState: { isDirty, isSubmitting },
+    } = useForm<FormData>({
+        defaultValues: buildDefaults(initialRules, initialFilePath, initialIpsetCreate),
+    });
 
-    const [mode, setMode] = useState<StorageMode>(initialMode);
-    const [rules, setRules] = useState<string[]>(initialRules);
-    const [filePath, setFilePath] = useState<string>(initialFilePath);
+    useEffect(() => {
+        reset(buildDefaults(initialRules, initialFilePath, initialIpsetCreate));
+    }, [initialRules, initialFilePath, initialIpsetCreate, reset]);
+
+    const mode = watch('mode');
+    const rules = watch('rules');
+    const autoCreateEnabled = watch('autoCreateEnabled');
+    const autoCreateSets = watch('autoCreateSets');
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
-    const [isDirty, setIsDirty] = useState(false);
-
-    // AutoCreate state
-    const [autoCreateEnabled, setAutoCreateEnabled] = useState(initialIpsetCreate?.enabled || false);
-    const [autoCreateSets, setAutoCreateSets] = useState<IpsetDefinition[]>(initialIpsetCreate?.sets || []);
     const [isAutoCreateModalOpen, setIsAutoCreateModalOpen] = useState(false);
     const [editingAutoCreateIndex, setEditingAutoCreateIndex] = useState<number | null>(null);
 
-    // Update when initial values change
-    useEffect(() => {
-        setRules(initialRules);
-        setFilePath(initialFilePath);
-        setAutoCreateEnabled(initialIpsetCreate?.enabled || false);
-        setAutoCreateSets(initialIpsetCreate?.sets || []);
-        const newMode = initialFilePath && initialFilePath.trim() !== '' ? 'file' : 'config';
-        setMode(newMode);
-        setIsDirty(false);
-    }, [initialRules, initialFilePath, initialIpsetCreate]);
+    const setRules = (next: string[]) => {
+        setValue('rules', next, { shouldDirty: true });
+    };
 
-    const handleModeChange = (newMode: StorageMode) => {
-        setMode(newMode);
-        setIsDirty(true);
+    const setAutoCreateSets = (next: IpsetDefinition[]) => {
+        setValue('autoCreateSets', next, { shouldDirty: true });
     };
 
     const handleAddRule = () => {
@@ -68,7 +96,7 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
         setIsModalOpen(true);
     };
 
-    const handleEditRule = (index: number, _rule: string) => {
+    const handleEditRule = (index: number) => {
         setEditingIndex(index);
         setIsModalOpen(true);
     };
@@ -90,34 +118,18 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
         }
 
         if (editingIndex !== null) {
-            // Edit existing rule
-            const newRules = [...rules];
-            newRules[editingIndex] = newRule;
-            setRules(newRules);
+            const next = [...rules];
+            next[editingIndex] = newRule;
+            setRules(next);
         } else {
-            // Add new rule
             setRules([...rules, newRule]);
         }
-
-        setIsDirty(true);
     };
 
     const handleDeleteRule = (index: number) => {
         if (window.confirm(t('ipset_confirm_delete'))) {
-            const newRules = rules.filter((_, i) => i !== index);
-            setRules(newRules);
-            setIsDirty(true);
+            setRules(rules.filter((_, i) => i !== index));
         }
-    };
-
-    const handleFilePathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFilePath(e.target.value);
-        setIsDirty(true);
-    };
-
-    const handleAutoCreateEnabledChange = () => {
-        setAutoCreateEnabled(!autoCreateEnabled);
-        setIsDirty(true);
     };
 
     const handleAddAutoCreateSet = () => {
@@ -125,58 +137,51 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
         setIsAutoCreateModalOpen(true);
     };
 
-    const handleEditAutoCreateSet = (index: number, _definition: IpsetDefinition) => {
+    const handleEditAutoCreateSet = (index: number) => {
         setEditingAutoCreateIndex(index);
         setIsAutoCreateModalOpen(true);
     };
 
     const handleSaveAutoCreateSet = (definitions: IpsetDefinition[]) => {
         if (editingAutoCreateIndex !== null) {
-            // When editing, replace the single item
-            const newSets = [...autoCreateSets];
-            [newSets[editingAutoCreateIndex]] = definitions;
-            setAutoCreateSets(newSets);
+            const next = [...autoCreateSets];
+            [next[editingAutoCreateIndex]] = definitions;
+            setAutoCreateSets(next);
         } else {
-            // When adding, append all new definitions
             setAutoCreateSets([...autoCreateSets, ...definitions]);
         }
-        setIsDirty(true);
     };
 
     const handleDeleteAutoCreateSet = (index: number) => {
         if (window.confirm(t('ipset_autocreate_confirm_delete'))) {
-            const newSets = autoCreateSets.filter((_, i) => i !== index);
-            setAutoCreateSets(newSets);
-            setIsDirty(true);
+            setAutoCreateSets(autoCreateSets.filter((_, i) => i !== index));
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
+    const onFormSubmit = (data: FormData) => {
         const ipsetCreate: IpsetCreateConfig = {
-            enabled: autoCreateEnabled,
-            sets: autoCreateSets,
+            enabled: data.autoCreateEnabled,
+            sets: data.autoCreateSets,
         };
 
-        if (mode === 'file') {
-            if (!filePath || filePath.trim() === '') {
+        if (data.mode === 'file') {
+            if (!data.filePath || data.filePath.trim() === '') {
                 dispatch(addErrorToast({ error: new Error(t('ipset_file_path_required')) }));
                 return;
             }
-            onSubmit({ ipset: [], ipset_file: filePath.trim(), ipset_create: ipsetCreate });
+            onSubmit({ ipset: [], ipset_file: data.filePath.trim(), ipset_create: ipsetCreate });
             return;
         }
 
-        const invalidRule = rules.find((rule) => validateIPSetRule(rule) !== undefined);
+        const invalidRule = data.rules.find((rule) => validateIPSetRule(rule) !== undefined);
         if (invalidRule) {
-            const error = validateIPSetRule(invalidRule);
+            const err = validateIPSetRule(invalidRule);
             dispatch(addErrorToast({
-                error: new Error(`${t('ipset_invalid_rule_prefix')} "${invalidRule}": ${error}`),
+                error: new Error(`${t('ipset_invalid_rule_prefix')} "${invalidRule}": ${err}`),
             }));
             return;
         }
-        onSubmit({ ipset: rules, ipset_file: '', ipset_create: ipsetCreate });
+        onSubmit({ ipset: data.rules, ipset_file: '', ipset_create: ipsetCreate });
     };
 
     const modeOptions = [
@@ -187,8 +192,12 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
     const editingRule = editingIndex !== null ? rules[editingIndex] : null;
     const parsedEditingRule = editingRule ? parseIPSetRule(editingRule) : null;
 
+    const existingAutoCreateNames = autoCreateSets
+        .map((s, i) => (i === editingAutoCreateIndex ? null : s.name))
+        .filter((n): n is string => n !== null);
+
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onFormSubmit)}>
             <div className="row">
                 <div className="col-12">
                     <div className="form__group form__group--settings">
@@ -197,12 +206,18 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
                         </label>
                         <div className="form__desc form__desc--top">{t('ipset_storage_mode_desc')}</div>
                         <div className="custom-controls-stacked">
-                            <Radio
-                                name="storage_mode"
-                                value={mode}
-                                options={modeOptions}
-                                disabled={processing}
-                                onChange={(value) => handleModeChange(value as StorageMode)}
+                            <Controller
+                                name="mode"
+                                control={control}
+                                render={({ field }) => (
+                                    <Radio
+                                        name="storage_mode"
+                                        value={field.value}
+                                        options={modeOptions}
+                                        disabled={processing}
+                                        onChange={(value) => field.onChange(value as StorageMode)}
+                                    />
+                                )}
                             />
                         </div>
                     </div>
@@ -211,14 +226,18 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
                 {mode === 'file' ? (
                     <div className="col-12 col-md-7">
                         <div className="form__group form__group--settings">
-                            <Input
-                                name="ipset_file"
-                                value={filePath}
-                                onChange={handleFilePathChange}
-                                label={t('ipset_file_path')}
-                                desc={t('ipset_file_path_desc')}
-                                placeholder="/etc/adguardhome/ipset.conf"
-                                disabled={processing}
+                            <Controller
+                                name="filePath"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input
+                                        {...field}
+                                        label={t('ipset_file_path')}
+                                        desc={t('ipset_file_path_desc')}
+                                        placeholder="/etc/adguardhome/ipset.conf"
+                                        disabled={processing}
+                                    />
+                                )}
                             />
                         </div>
                     </div>
@@ -255,12 +274,18 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
                         <div className="form__desc form__desc--top mb-3">
                             {t('ipset_autocreate_desc')}
                         </div>
-                        <Checkbox
-                            name="autocreate_enabled"
-                            value={autoCreateEnabled}
-                            title={t('ipset_autocreate_enable')}
-                            disabled={processing}
-                            onChange={handleAutoCreateEnabledChange}
+                        <Controller
+                            name="autoCreateEnabled"
+                            control={control}
+                            render={({ field }) => (
+                                <Checkbox
+                                    name="autocreate_enabled"
+                                    value={field.value}
+                                    title={t('ipset_autocreate_enable')}
+                                    disabled={processing}
+                                    onChange={() => field.onChange(!field.value)}
+                                />
+                            )}
                         />
                     </div>
 
@@ -302,7 +327,7 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
             <button
                 type="submit"
                 className="btn btn-success btn-standard btn-large"
-                disabled={!isDirty || processing}>
+                disabled={!isDirty || isSubmitting || processing}>
                 {t('save_btn')}
             </button>
 
@@ -311,6 +336,7 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
                 onClose={() => setIsAutoCreateModalOpen(false)}
                 onSave={handleSaveAutoCreateSet}
                 initialDefinition={editingAutoCreateIndex !== null ? autoCreateSets[editingAutoCreateIndex] : null}
+                existingNames={existingAutoCreateNames}
                 title={editingAutoCreateIndex !== null ? t('ipset_autocreate_edit') : t('ipset_autocreate_add')}
             />
 
