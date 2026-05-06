@@ -5,7 +5,7 @@ import type { IpsetDefinition } from './AutoCreateModal';
 
 interface AutoCreateTableProps {
     definitions: IpsetDefinition[];
-    onEdit: (index: number, definition: IpsetDefinition) => void;
+    onEdit: (index: number) => void;
     onDelete: (index: number) => void;
     disabled?: boolean;
 }
@@ -49,49 +49,51 @@ const AutoCreateTable: React.FC<AutoCreateTableProps> = ({
     };
 
     return (
-        <table className="table table-bordered">
-            <thead>
-                <tr>
-                    <th>{t('ipset_autocreate_name')}</th>
-                    <th>{t('ipset_autocreate_type')}</th>
-                    <th>{t('ipset_autocreate_family')}</th>
-                    <th>{t('ipset_autocreate_timeout')}</th>
-                    <th style={{ width: '120px' }}>{t('actions_table_header')}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {definitions.map((def, index) => (
-                    <tr key={index}>
-                        <td>{def.name}</td>
-                        <td>{getTypeLabel(def.type)}</td>
-                        <td>{getFamilyLabel(def.family)}</td>
-                        <td>{def.timeout === 0 ? t('disabled') : `${def.timeout}s`}</td>
-                        <td>
-                            <button
-                                type="button"
-                                className="btn btn-icon btn-sm btn-outline-primary mr-2"
-                                onClick={() => onEdit(index, def)}
-                                disabled={disabled}
-                                title={t('edit')}>
-                                <svg className="icons icon--small">
-                                    <use xlinkHref="#edit" />
-                                </svg>
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-icon btn-sm btn-outline-danger"
-                                onClick={() => onDelete(index)}
-                                disabled={disabled}
-                                title={t('delete')}>
-                                <svg className="icons icon--small">
-                                    <use xlinkHref="#delete" />
-                                </svg>
-                            </button>
-                        </td>
+        <div className="table-responsive">
+            <table className="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>{t('ipset_autocreate_name')}</th>
+                        <th>{t('ipset_autocreate_type')}</th>
+                        <th>{t('ipset_autocreate_family')}</th>
+                        <th>{t('ipset_autocreate_timeout')}</th>
+                        <th style={{ width: '120px' }}>{t('actions_table_header')}</th>
                     </tr>
-                ))}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {definitions.map((def, index) => (
+                        <tr key={index}>
+                            <td>{def.name}</td>
+                            <td>{getTypeLabel(def.type)}</td>
+                            <td>{getFamilyLabel(def.family)}</td>
+                            <td>{def.timeout === 0 ? t('disabled') : `${def.timeout}s`}</td>
+                            <td>
+                                <button
+                                    type="button"
+                                    className="btn btn-icon btn-sm btn-outline-primary mr-2"
+                                    onClick={() => onEdit(index)}
+                                    disabled={disabled}
+                                    title={t('edit')}>
+                                    <svg className="icons icon--small">
+                                        <use xlinkHref="#edit" />
+                                    </svg>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-icon btn-sm btn-outline-danger"
+                                    onClick={() => onDelete(index)}
+                                    disabled={disabled}
+                                    title={t('delete')}>
+                                    <svg className="icons icon--small">
+                                        <use xlinkHref="#delete" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
     );
 };
 

@@ -5,7 +5,7 @@ import { parseIPSetRule } from '../../../helpers/ipset';
 
 interface RulesTableProps {
     rules: string[];
-    onEdit: (index: number, rule: string) => void;
+    onEdit: (index: number) => void;
     onDelete: (index: number) => void;
     disabled?: boolean;
 }
@@ -56,7 +56,7 @@ const RulesTable: React.FC<RulesTableProps> = ({ rules, onEdit, onDelete, disabl
                                     <button
                                         type="button"
                                         className="btn btn-icon btn-sm btn-outline-primary mr-2"
-                                        onClick={() => onEdit(index, rule)}
+                                        onClick={() => onEdit(index)}
                                         disabled={disabled}
                                         title={t('edit')}>
                                         <svg className="icons icon--small">

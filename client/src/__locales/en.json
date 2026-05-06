@@ -498,7 +498,7 @@
   "ipset_autocreate_family_ipv4": "IPv4 (inet)",
   "ipset_autocreate_family_ipv6": "IPv6 (inet6)",
   "ipset_autocreate_name": "IPSet Name",
-  "ipset_autocreate_name_desc": "Name of the IPSet or multiple names separated by commas (letters, digits, underscore, hyphen)",
+  "ipset_autocreate_name_desc": "Name of the IPSet (letters, digits, underscore, hyphen). Provide multiple names separated by commas to create several IPSets with the same settings.",
   "ipset_autocreate_name_duplicate": "An IPSet with this name already exists",
   "ipset_autocreate_name_required": "IPSet name cannot be empty",
   "ipset_autocreate_no_sets": "No IPSet definitions configured",
