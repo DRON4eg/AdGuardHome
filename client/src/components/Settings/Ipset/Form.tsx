@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDispatch } from 'react-redux';
 
 import RulesTable from './RulesTable';
 import RuleModal from './RuleModal';
 import AutoCreateTable from './AutoCreateTable';
 import AutoCreateModal, { IpsetDefinition } from './AutoCreateModal';
 import { parseIPSetRule, isDuplicateRule, validateIPSetRule } from '../../../helpers/ipset';
+import { addErrorToast } from '../../../actions/toasts';
 import { Radio } from '../../ui/Controls/Radio';
 import { Input } from '../../ui/Controls/Input';
 import { Checkbox } from '../../ui/Controls/Checkbox';
@@ -27,6 +29,7 @@ type StorageMode = 'config' | 'file';
 
 const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpsetCreate, onSubmit, processing }) => {
     const { t } = useTranslation();
+    const dispatch = useDispatch();
 
     // Determine initial mode
     const initialMode: StorageMode = initialFilePath && initialFilePath.trim() !== '' ? 'file' : 'config';
@@ -71,20 +74,18 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
     };
 
     const handleSaveRule = (newRule: string) => {
-        // Validate rule
         const error = validateIPSetRule(newRule);
         if (error) {
-            alert(`Invalid rule: ${error}`);
+            dispatch(addErrorToast({ error: new Error(`${t('ipset_invalid_rule_prefix')}: ${error}`) }));
             return;
         }
 
-        // Check for duplicates (exclude current rule if editing)
         const otherRules = editingIndex !== null
             ? rules.filter((_, i) => i !== editingIndex)
             : rules;
 
         if (isDuplicateRule(newRule, otherRules)) {
-            alert(t('ipset_duplicate_rule'));
+            dispatch(addErrorToast({ error: new Error(t('ipset_duplicate_rule')) }));
             return;
         }
 
@@ -160,22 +161,22 @@ const Form: React.FC<FormProps> = ({ initialRules, initialFilePath, initialIpset
 
         if (mode === 'file') {
             if (!filePath || filePath.trim() === '') {
-                alert(t('ipset_file_path_required'));
+                dispatch(addErrorToast({ error: new Error(t('ipset_file_path_required')) }));
                 return;
             }
             onSubmit({ ipset: [], ipset_file: filePath.trim(), ipset_create: ipsetCreate });
-        } else {
-            // Validate all rules
-            const invalidRule = rules.find((rule) => validateIPSetRule(rule) !== undefined);
-            if (invalidRule) {
-                const error = validateIPSetRule(invalidRule);
-                alert(`Invalid rule "${invalidRule}": ${error}`);
-                return;
-            }
-            onSubmit({ ipset: rules, ipset_file: '', ipset_create: ipsetCreate });
+            return;
         }
 
-        setIsDirty(false);
+        const invalidRule = rules.find((rule) => validateIPSetRule(rule) !== undefined);
+        if (invalidRule) {
+            const error = validateIPSetRule(invalidRule);
+            dispatch(addErrorToast({
+                error: new Error(`${t('ipset_invalid_rule_prefix')} "${invalidRule}": ${error}`),
+            }));
+            return;
+        }
+        onSubmit({ ipset: rules, ipset_file: '', ipset_create: ipsetCreate });
     };
 
     const modeOptions = [

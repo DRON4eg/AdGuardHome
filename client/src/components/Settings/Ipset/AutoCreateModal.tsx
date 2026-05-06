@@ -85,23 +85,18 @@ const AutoCreateModal: React.FC<AutoCreateModalProps> = ({
     };
 
     const validateName = (value: string) => {
-        if (!value || value.trim() === '') {
-            return t('ipset_file_path_required');
-        }
-
-        // Split by comma and validate each name
-        const names = value
+        const names = (value || '')
             .split(',')
-            .map(n => n.trim())
-            .filter(n => n.length > 0);
+            .map((n) => n.trim())
+            .filter((n) => n.length > 0);
 
         if (names.length === 0) {
-            return t('ipset_file_path_required');
+            return t('ipset_autocreate_name_required');
         }
 
-        const invalid = names.find(n => !/^[A-Za-z0-9_-]+$/.test(n));
+        const invalid = names.find((n) => !/^[A-Za-z0-9_-]+$/.test(n));
         if (invalid) {
-            return `${t('ipset_invalid_rule')}: "${invalid}"`;
+            return `${t('ipset_error_name_chars')}: "${invalid}"`;
         }
 
         return undefined;
@@ -109,7 +104,7 @@ const AutoCreateModal: React.FC<AutoCreateModalProps> = ({
 
     const validateTimeout = (value: number) => {
         if (value < 0) {
-            return 'Timeout must be non-negative';
+            return t('ipset_error_timeout_negative');
         }
         return undefined;
     };
